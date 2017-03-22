@@ -17,10 +17,10 @@ limitations under the License.
 package main
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
+	pb "github.com/hyperledger/fabric/protos/peer"
 )
 
 // SimpleChaincode example simple Chaincode implementation
@@ -38,37 +38,52 @@ func main() {
 }
 
 // Init resets all the things
-func (t *SimpleChaincode) Init(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
+	_, args := stub.GetFunctionAndParameters()
 	if len(args) != 1 {
-		return nil, errors.New("Incorrect number of arguments. Expecting 1")
+		return shim.Error("Incorrect number of arguments. Expecting 1")
 	}
 
-	return nil, nil
+	return shim.Success(nil)
 }
 
 // Invoke is our entry point to invoke a chaincode function
-func (t *SimpleChaincode) Invoke(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
+	function, _ := stub.GetFunctionAndParameters()
 	fmt.Println("invoke is running " + function)
 
 	// Handle different functions
-	if function == "init" {													//initialize the chaincode state, used as reset
-		return t.Init(stub, "init", args)
+	if function == "init" { //initialize the chaincode state, used as reset
+		return t.Init(stub)
 	}
-	fmt.Println("invoke did not find func: " + function)					//error
+	if function == "read" { //initialize the chaincode state, used as reset
+		return t.read(stub)
+	}
 
-	return nil, errors.New("Received unknown function invocation: " + function)
+	if function == "dummy_query" { //initialize the chaincode state, used as reset
+		return t.read(stub)
+	}
+
+	fmt.Println("invoke did not find func: " + function) //error
+
+	return shim.Error("Unknown action, check the first argument, must be one of 'init' or 'query'")
 }
 
 // Query is our entry point for queries
-func (t *SimpleChaincode) Query(stub *shim.ChaincodeStub, function string, args []string) ([]byte, error) {
+func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface) pb.Response {
+	return shim.Error("Unknown supported call")
+}
+
+func (t *SimpleChaincode) read(stub shim.ChaincodeStubInterface) pb.Response {
+	function, _ := stub.GetFunctionAndParameters()
 	fmt.Println("query is running " + function)
 
 	// Handle different functions
-	if function == "dummy_query" {											//read a variable
-		fmt.Println("hi there " + function)						//error
-		return nil, nil;
+	if function == "dummy_query" { //read a variable
+		fmt.Println("hi there " + function) //error
+		return shim.Success(nil)
 	}
-	fmt.Println("query did not find func: " + function)						//error
+	fmt.Println("query did not find func: " + function) //error
 
-	return nil, errors.New("Received unknown function query: " + function)
+	return shim.Error("Unknown action, check the first argument, must be one of 'init' or 'query'")
 }
